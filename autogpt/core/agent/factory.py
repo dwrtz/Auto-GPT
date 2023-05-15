@@ -7,7 +7,7 @@ from autogpt.core.budget.simple import SimpleBudgetManager
 from autogpt.core.configuration import Configuration
 from autogpt.core.model.language.simple import (
     LanguageModelResponse,
-    OpenAILanguageModel,
+    # OpenAILanguageModel,
 )
 from autogpt.core.planning.simple import ModelPrompt, SimplePlanner
 from autogpt.core.plugin.simple import PluginStorageFormat, SimplePluginService

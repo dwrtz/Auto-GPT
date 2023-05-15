@@ -6,7 +6,7 @@ from autogpt.core.budget.simple import SimpleBudgetManager
 from autogpt.core.configuration import Configuration
 
 # from autogpt.core.memory.simple import SimpleMemoryBackend
-from autogpt.core.model.language.simple import OpenAILanguageModel
+# from autogpt.core.model.language.simple import OpenAILanguageModel
 
 # from autogpt.core.model.embedding.openai import OpenAIEmbeddingModel
 from autogpt.core.planning.simple import SimplePlanner
