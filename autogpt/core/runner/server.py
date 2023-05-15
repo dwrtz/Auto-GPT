@@ -190,12 +190,11 @@ class CreateAgentResponseBody(BaseModel):
     agent_id: str
 
 
-@router.post("/agents")
+@router.post("/agents", response_model=CreateAgentResponseBody)
 async def create_agent(request: Request, body: CreateAgentRequestBody):
     """Create a new agent."""
 
-    # validate headers. This is where you would do auth.
-    # currently checks for an api key (as an example)
+    # validate request headers.
     api_key = request.headers.get("openai_api_key")
     if not api_key:
         raise HTTPException(
@@ -217,16 +216,40 @@ class InteractRequestBody(BaseModel):
     user_input: Optional[str] = None
 
 
+class Command(BaseModel):
+    name: str
+    args: Dict[str, str]
+
+
+class Thoughts(BaseModel):
+    text: str
+    reasoning: str
+    plan: List[str] | str
+    criticism: str
+    speak: str
+
+
+class AssistantReply(BaseModel):
+    thoughts: Optional[Thoughts]
+    command: Optional[Command]
+
+
 class InteractResponseBody(BaseModel):
-    thoughts: Dict[str, str]  # TBD
-    messages: List[str]  # for example
+    result: Optional[str | List[str]]
+    assistant: AssistantReply
 
 
-@router.post("/agents/{agent_id}")
-async def interact(request: Request, agent_id: str, body: InteractRequestBody):
+@router.post("/agents/{agent_id}", response_model=InteractResponseBody)
+async def interact(request: Request, agent_id: str):
     """Interact with an agent."""
 
-    # check headers
+    # validate request headers.
+    api_key = request.headers.get("openai_api_key")
+    if not api_key:
+        raise HTTPException(
+            status_code=401,
+            detail="missing openai_api_key header key",
+        )
 
     # check if agent_id exists
 
@@ -235,20 +258,182 @@ async def interact(request: Request, agent_id: str, body: InteractRequestBody):
     # continue agent interaction with user input
 
     return {
-        "thoughts": {
+        "result": "Command write_to_file returned: File written to successfully.",
+        "assistant": {
             "thoughts": {
-                "text": "text",
-                "reasoning": "reasoning",
-                "plan": "plan",
-                "criticism": "criticism",
-                "speak": "speak",
+                "text": "My goal has been achieved, so I will use the 'task_complete' command to shut down.",
+                "reasoning": "Since my goal has been achieved, there is no need to perform any further actions.",
+                "plan": "- Use 'task_complete' command to shut down",
+                "criticism": "I did not consider any alternative plans or potential issues that may arise.",
+                "speak": "I have completed my task and will now shut down.",
             },
-            "commands": {
-                "name": "name",
-                "args": {"arg_1": "value_1", "arg_2": "value_2"},
+            "command": {
+                "name": "task_complete",
+                "args": {"reason": "Message has been written to file."},
             },
         },
-        "messages": ["message1", agent_id],
+    }
+
+
+class AiConfig(BaseModel):
+    ai_name: str
+    ai_role: str
+    ai_goals: List[str]
+
+
+class ListAgentsItem(BaseModel):
+    agent_id: str
+    ai_config: AiConfig
+    status: str
+    created_at: int
+    updated_at: int
+
+
+class ListAgentsResponseBody(BaseModel):
+    agents: List[ListAgentsItem]
+
+
+@router.get("/agents", response_model=ListAgentsResponseBody)
+async def list_agents(request: Request):
+    """List all agents."""
+    {
+        "agents": [
+            {
+                "agent_id": "b50932f1da8148a092736066b4cdc432",
+                "ai_config": {
+                    "ai_name": "HelloBot",
+                    "ai_role": "An AI that says 'Hello, World!'",
+                    "ai_goals": [
+                        "Write your message in a file called 'message.txt'.",
+                        "Shut down.",
+                    ],
+                },
+                "status": "completed",
+                "created_at": 1684173110491,
+                "updated_at": 1684173468437,
+            },
+            {
+                "agent_id": "1b0a56f805d244118117dd55e89022f9",
+                "ai_config": {
+                    "ai_name": "HelloBot",
+                    "ai_role": "An AI that says 'Hello, World!'",
+                    "ai_goals": [
+                        "Write your message in a file called 'message.txt'.",
+                        "Shut down.",
+                    ],
+                },
+                "status": "active",
+                "created_at": 1684030923958,
+                "updated_at": 1684030940859,
+            },
+            {
+                "agent_id": "76ec74bf16544ba3a115258f6d52b7c5",
+                "ai_config": {
+                    "ai_name": "HelloBot",
+                    "ai_role": "An AI that says 'Hello, World!'",
+                    "ai_goals": [
+                        "Write your message in a file called 'message.txt'.",
+                        "Shut down.",
+                    ],
+                },
+                "status": "active",
+                "created_at": 1683987345020,
+                "updated_at": 1683987368569,
+            },
+            {
+                "agent_id": "7c37ca1bf65b4bf5a00b43ed5612e2d4",
+                "ai_config": {
+                    "ai_name": "HelloBot",
+                    "ai_role": "An AI that says 'Hello, World!'",
+                    "ai_goals": [
+                        "Write your message in a file called 'message.txt'.",
+                        "Shut down.",
+                    ],
+                },
+                "status": "active",
+                "created_at": 1683949058448,
+                "updated_at": 1683949111032,
+            },
+            {
+                "agent_id": "0790ab86ad9f4271be4fce0ed6e05dbb",
+                "ai_config": {
+                    "ai_name": "HelloBot",
+                    "ai_role": "An AI that says 'Hello, World!'",
+                    "ai_goals": [
+                        "Write your message in a file called 'message.txt'.",
+                        "Shut down.",
+                    ],
+                },
+                "status": "completed",
+                "created_at": 1683748119231,
+                "updated_at": 1683748158216,
+            },
+        ]
+    }
+
+
+class InteractHistoryItem(BaseModel):
+    created_at: int
+    response: InteractResponseBody
+
+
+class InteractHistoryResponseBody(BaseModel):
+    history: List[InteractHistoryItem]
+
+
+@router.get("/agents/{agent_id}")
+async def interact_history(
+    request: Request, agent_id: str, response_model=InteractResponseBody
+):
+    """Get the interaction history for an agent."""
+    return {
+        "history": [
+            {
+                "created_at": 1684173128860,
+                "response": {
+                    "result": None,
+                    "assistant": {
+                        "thoughts": {
+                            "text": "My goal is to write a message to a file called 'message.txt' and then shut down. The simplest way to achieve this is to use the 'write_to_file' command to write the message and then use the 'task_complete' command to shut down. I will proceed with this plan.",
+                            "speak": "I will write the message to a file and then shut down.",
+                            "plan": "- Use 'write_to_file' command to write message to 'message.txt'\n- Use 'task_complete' command to shut down",
+                            "criticism": "I did not consider any alternative plans or potential issues that may arise.",
+                            "reasoning": "I have analyzed my goal and determined the most efficient way to achieve it.",
+                        },
+                        "command": {
+                            "args": {"text": "Hello, World!", "file": "message.txt"},
+                            "name": "write_to_file",
+                        },
+                    },
+                },
+            },
+            {
+                "created_at": 1684173321180,
+                "response": {
+                    "result": "Command write_to_file returned: File written to successfully.",
+                    "assistant": {
+                        "thoughts": {
+                            "text": "My goal has been achieved, so I will use the 'task_complete' command to shut down.",
+                            "speak": "I have completed my task and will now shut down.",
+                            "plan": "- Use 'task_complete' command to shut down",
+                            "criticism": "I did not consider any alternative plans or potential issues that may arise.",
+                            "reasoning": "Since my goal has been achieved, there is no need to perform any further actions.",
+                        },
+                        "command": {
+                            "args": {"reason": "Message has been written to file."},
+                            "name": "task_complete",
+                        },
+                    },
+                },
+            },
+            {
+                "created_at": 1684173468819,
+                "response": {
+                    "result": "Shutting down.",
+                    "assistant": {"thoughts": None, "command": None},
+                },
+            },
+        ]
     }
 
 
