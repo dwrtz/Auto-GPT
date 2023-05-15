@@ -240,7 +240,7 @@ class InteractResponseBody(BaseModel):
 
 
 @router.post("/agents/{agent_id}", response_model=InteractResponseBody)
-async def interact(request: Request, agent_id: str):
+async def interact(request: Request, agent_id: str, body: InteractRequestBody):
     """Interact with an agent."""
 
     # validate request headers.
