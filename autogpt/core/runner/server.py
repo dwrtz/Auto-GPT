@@ -296,7 +296,7 @@ class ListAgentsResponseBody(BaseModel):
 @router.get("/agents", response_model=ListAgentsResponseBody)
 async def list_agents(request: Request):
     """List all agents."""
-    {
+    return {
         "agents": [
             {
                 "agent_id": "b50932f1da8148a092736066b4cdc432",
@@ -381,10 +381,8 @@ class InteractHistoryResponseBody(BaseModel):
     history: List[InteractHistoryItem]
 
 
-@router.get("/agents/{agent_id}")
-async def interact_history(
-    request: Request, agent_id: str, response_model=InteractResponseBody
-):
+@router.get("/agents/{agent_id}", response_model=InteractHistoryResponseBody)
+async def interact_history(request: Request, agent_id: str):
     """Get the interaction history for an agent."""
     return {
         "history": [
